@@ -1,0 +1,57 @@
+version: "3.8"
+services:
+  proxy:
+    image: traefik:latest
+    command:
+      # - "--log.level=DEBUG"
+      - "--api=true"
+      - "--api.dashboard=true"
+      - "--api.insecure=true" # Don't do that in production
+      - "--providers.docker"
+      - "--entrypoints.web.address=:80"
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: host
+  minio:
+    image: 'bitnami/minio:latest'
+    ports:
+      - '9000:9000'
+    env_file:
+      - ./.env.minio
+    volumes:
+      - ./minio-persistence:/data
+    labels:
+      # Enable public access
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio.rule=Host(`minio.example.com`)"
+      - "traefik.http.services.minio.loadbalancer.server.port=9000"
+      - "traefik.http.routers.minio.entrypoints=web"
+  storage:
+    build: 
+      context: ./build/storage
+      dockerfile: ./Dockerfile
+    # image:qolzam/storage:v2.1.0
+    labels:
+      # Enable public access
+      - "traefik.enable=true"
+      - "traefik.http.routers.storage.rule=Host(`social.example.com`) && PathPrefix(`/storage`)"
+      - "traefik.http.services.storage.loadbalancer.server.port=8080"
+      - "traefik.http.routers.storage.entrypoints=web"
+      - "traefik.http.routers.storage.middlewares=storage-stripprefix"
+      - "traefik.http.middlewares.storage-stripprefix.stripprefix.prefixes=/storage"
+    env_file:
+      - ./.env.minio
+      - ./.env.secrets
+      - ./.env.storage
+      - ./.env.gateway
