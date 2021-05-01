@@ -1,3 +1,4 @@
 template
 build
 minio-persistence/*
+storage/node_modules
