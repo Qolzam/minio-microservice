@@ -74,9 +74,7 @@ const postHandler = function (req, res) {
  * @returns
  */
 const getHandler = function (req, res) {
-  const { dir, name } = req.params;
-  const { uid } = res.locals;
-
+  const {uid, dir, name } = req.params;
   const filePath = `${uid}/${dir}/${name}`;
   console.log("[INFO] Get file ", filePath);
   minioClient.getObject(bucket_name, filePath, function (error, stream) {
@@ -96,26 +94,15 @@ module.exports = async (config) => {
   var corsOptionsDelegate = function (req, callback) {
     var corsOptions;
     if (whitelist.indexOf(req.header('Origin')) !== -1) {
-      corsOptions = { origin: true } // reflect (enable) the requested origin in the CORS response
+      corsOptions = { origin: true, credentials: true } // reflect (enable) the requested origin in the CORS response
     } else {
-      corsOptions = { origin: false } // disable CORS for this request
+      corsOptions = { origin: false, credentials: true } // disable CORS for this request
     }
     callback(null, corsOptions) // callback expects two parameters: error and options
   }
 
   config.app.use(cors(corsOptionsDelegate));
 
-  // config.app.use(function (req, res, next) {
-  //   console.log('Rquest origin URL: ', req.headers.origin)
-  //   res.header('Access-Control-Allow-Origin', req.headers.origin)
-  //   res.header('Access-Control-Allow-Credentials', true)
-  //   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-  //   res.header(
-  //     'Access-Control-Allow-Headers',
-  //     'Origin,X-Requested-With,Content-Type,Accept,content-type,application/json'
-  //   )
-  //   next()
-  // })
   config.app.use(fileUpload());
 
   // set a cookie
